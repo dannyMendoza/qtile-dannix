@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+
+from libqtile.command.client import InteractiveCommandClient
+
+c = InteractiveCommandClient()
+
+groupname = c.group.info()['name']
+on_top_win = ('DM Screenshot Tool','Picture-in-Picture')
+
+for window in c .windows():
+    if window['floating']:
+        c.window[window['id']].bring_to_front()
+        if window['name'] in on_top_win:
+            c.window[window['id']].togroup()

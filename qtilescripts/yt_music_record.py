@@ -11,9 +11,12 @@ import subprocess as sp
 import sys
 
 
-videos = str(Path.home()) + '/Videos/'
+videos = str(Path.home()) + '/Music/'
 script_path = str(Path(__file__).parent.absolute()) + '/'
 sp.run(f'rm -f {script_path}*.mp4',shell=True,stdout=sp.DEVNULL)
+audio_sources = sp.Popen(['pactl','list','short','sources'],stdout=sp.PIPE,stderr=sp.PIPE,text=True).communicate()[0].strip()
+audio_ouput = re.search(r'(?<=\s)alsa_output[^\s]+',audio_sources).group(0)
+
 
 bus = dbus.SessionBus()
 
@@ -23,23 +26,23 @@ for service in bus.list_names():
         try:
             ffox = re.findall(r'\bf[irefox]*\b',service)[0]
         except IndexError:
+            sys.exit("[ERROR] firefox player not found")
             continue
         if ffox:
             s = service
             break
-if not s:
-    sys.exit("[ERROR] firefox player not found")
 ffox_player = dbus.SessionBus().get_object(s, '/org/mpris/MediaPlayer2')
 meta = dbus.Interface(ffox_player, 
         dbus_interface='org.freedesktop.DBus.Properties')
 metadata = meta.GetAll('org.mpris.MediaPlayer2.Player')
-if metadata['PlaybackStatus'] == 'Playing':
-    album = metadata['Metadata']['xesam:album']
-    artist = str(metadata['Metadata']['xesam:artist'][0])
-    album_cover = metadata['Metadata']['mpris:artUrl'].replace('file://','')
-    song = metadata['Metadata']['xesam:title']
-else:
-    sys.exit("[ERROR] firefox player is paused")
+song = metadata['Metadata']['xesam:title']
+ffox_device = dbus.Interface(ffox_player, dbus_interface='org.mpris.MediaPlayer2.Player')
+album = metadata['Metadata']['xesam:album']
+artist = str(metadata['Metadata']['xesam:artist'][0])
+album_cover = metadata['Metadata']['mpris:artUrl'].replace('file://','')
+if metadata['PlaybackStatus'] != 'Playing':
+    ffox_device.PlayPause()
+
 
 
 # OUTPUT
@@ -49,6 +52,7 @@ def print_to_terminal():
         {'Album':<7}: {album}
         {'Artist':<7}: {artist}
         {'Song':<7}: {song}
+        {'Cover':<7}: {album_cover}
 
     """
     return data
@@ -69,13 +73,13 @@ def cover(image):
             text=True, stdin=image_size2.stdout, stdout=sp.PIPE, stderr=sp.PIPE)
     image_size2.stdout.close()
     size = image_size3.communicate()[0]
-    if size != '540x540':
-        convert = sp.Popen(
-                ['convert', image, 
-                    '-resize', '640x640!', image],
-                stdout=sp.PIPE,
-                stderr=sp.DEVNULL)
-        convert.communicate()[0]
+    if size not in ('540x540','544x544','640x640'):
+         convert = sp.Popen(
+                 ['convert', image, 
+                     '-resize', '640x640!', image],
+                 stdout=sp.PIPE,
+                 stderr=sp.DEVNULL)
+         convert.communicate()[0]
     return image
 
 # Check if the track already exists
@@ -84,18 +88,18 @@ def mp4_exists(track):
     track_exists = Path(track)
     while track_exists.is_file():
         counter += 1
-        track = f'{videos}API_{artist}_{song}_{counter}.mp4'
+        track = f'{videos}{artist} : {song}_{counter}.mp4'
         track_exists = Path(track)
     return track
 
 # Record ("30" secs) audio from your computer 
-def record(image):
+def record(image,song):
 
     recorded = sp.Popen(
             ['ffmpeg','-y','-framerate','1','-i',image,
-            '-f','pulse','-i','default','-t','30','-vf','format=yuv420p',
-            f'{script_path}API_{artist}_{song}.mp4'
-            ],stdout=sp.PIPE, stderr=sp.DEVNULL)
+            '-f','pulse','-i',audio_ouput,'-t','30','-vf','format=yuv420p',
+             song
+            ],stdout=sp.PIPE, stderr=sp.PIPE)
 
     return recorded.communicate()
 
@@ -116,7 +120,9 @@ def add_thumbnail(video,image):
 
 print(print_to_terminal())
 cover(album_cover)
-track = f'{videos}API_{artist}_{song}.mp4'
+song = song.replace('/','-')
+track = f'{videos}{artist} : {song}.mp4'
 track = mp4_exists(track)
-record(album_cover)
-add_thumbnail(f'{script_path}API_{artist}_{song}.mp4',f'{script_path}thumb.png')
+song_to_record = f'{script_path}{artist} : {song}.mp4'
+record(album_cover,song_to_record)
+add_thumbnail(f'{song_to_record}',f'{script_path}thumb.png')
