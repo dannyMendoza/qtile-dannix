@@ -39,6 +39,7 @@ from libqtile.widget import base
 from Xlib import display as xdisplay
 from libqtile import extension
 from libqtile.command.client import InteractiveCommandClient as qicc
+from time import sleep
 
 # [Start] Testing
 from qtilescripts.test import multiply as ttm
@@ -81,11 +82,11 @@ keys = [
         lazy.run_extension(
             extension.DmenuRun(
             dmenu_prompt='>',
-            dmenu_font='Iosevka:size=14',
-            background='#15181a',
-            foreground='#ffd700',
-            selected_background='#594411',
-            selected_foreground='#fff',
+            dmenu_font='Iosevka Term:size=14',
+            background='#100e15',
+            foreground='#ffd103',
+            selected_background='#ffd103',
+            selected_foreground='#100e15',
             )  # Only supported by some dmenu forks
             )
         ),
@@ -103,6 +104,8 @@ keys = [
         desc='Increase the bright'),
     Key([], 'XF86MonBrightnessDown', lazy.spawn('xbacklight -dec 2'),
         desc='Decrease the bright'),
+    Key([mod1], "space", lazy.widget["keyboardlayout"].next_keyboard(),
+        desc="Next keyboard layout."),
     Key([mod1, 'control'], 'm', change_port_monitor,
         desc='Change external monitor port DPI/HDMI'),
     Key([], 'XF86AudioRaiseVolume', lazy.spawn('amixer set Master 2%+'),
@@ -114,13 +117,13 @@ keys = [
     Key([mod], 'a', change_audio,
         desc='Switch between Headphones or Speakers'),
     Key([], 'XF86AudioPlay', lazy.spawn(
-        'playerctl --player=spotify,firefox play-pause'),
+        'playerctl --player=spotify,firefox,chromium, play-pause'),
         desc='Play or Pause current player'),
     Key([], 'XF86AudioNext', lazy.spawn(
-        'playerctl --player=spotify,firefox next'),
+        'playerctl --player=spotify,firefox,chromium next'),
         desc='Next Track'),
     Key([], 'XF86AudioPrev', lazy.spawn(
-        'playerctl --player=spotify,firefox previous'),
+        'playerctl --player=spotify,firefox,chromium previous'),
         desc='Previous Track'),
     Key([mod], 'j', lazy.layout.down(),
         desc='Move focus down in stack pane'),
@@ -160,18 +163,18 @@ keys = [
 ]
 
 layouts = [
-    layout.TreeTab(
-        place_right=True,
-        bg_color='00000055',
-        panel_width=130,
-        active_fg='000000',
-        active_bg='FCD80D',
-        font='Strong', fontsize=30,
-        section_fontsize=30,
-        section_fg='FCD80D',
-        sections=['DANNY'],
-        previous_on_rm=True,
-        ),
+#    layout.TreeTab(
+#        place_right=True,
+#        bg_color='00000055',
+#        panel_width=130,
+#        active_fg='000000',
+#        active_bg='FCD80D',
+#        font='Strong', fontsize=30,
+#        section_fontsize=30,
+#        section_fg='FCD80D',
+#        sections=['DANNY'],
+#        previous_on_rm=True,
+#        ),
     layout.Max(),
     layout.MonadTall(
         margin=10,
@@ -191,7 +194,7 @@ ig = ['ﲾ','ﳴ','ﱮ','ﴷ','ﰝ','ﮊ']
 
 group_names = [
         (ig[0], {'layout': 'monadtall'}),
-        (ig[1], {'layout': 'monadtall'}),
+        (ig[1], {'layout': 'max'}),
         (ig[2], {'layout': 'monadtall'}),
         (ig[3], {'layout': 'max'}),
         (ig[4], {'layout': 'max'}),
@@ -245,7 +248,7 @@ widget_defaults = dict(
 )
 
 external_monitor = dict(
-    font='Abel',
+    font='Iosevka Term Slab Light',
     fontsize=34,
     padding=0,
 )
@@ -260,10 +263,11 @@ prompt_settings = dict(
     ignore_dups_history=True,
 )
 
-n_mon = 40 if num_monitors > 1 else 30
+n_mon = 48 if num_monitors > 1 else 38
 
 systray = widget.Systray(
-        font='NotoSansMono Nerd Font Condensed',
+        # font='NotoSansMono Nerd Font Condensed',
+        font='Iosevka Term',
         icon_size=n_mon,
         background='FFFFFF00',
         foreground='000000')
@@ -289,9 +293,9 @@ def my_func(text):
             ' 🏠 ':f'{user}@{hostname}:~',
             '👨‍🎤Spotify':'Spotify',
             '':'— Mozilla Firefox',
-            ' \U0001F4DDVIMROOT':'svim',
-            ' \U0001F4DDVIM':' - VIM',
-            ' \U0001F427PACMAN':'pacman',
+            '\U0001F4DDVIMROOT':'svim',
+            '\U0001F4DD ':' - VIM',
+            '\U0001F427PACMAN':'pacman',
             }
     for key,value in dictionary.items():
         if value in text:
@@ -320,10 +324,16 @@ icon= f'/home/user/.local/share/icons/Papirus/64x64/apps/xfcalendar.svg'
 def widgets():
     list_widgets = [
 
+        widget.KeyboardLayout(
+            **external_monitor,
+            configured_keyboards = ['us','latam'],
+            fmt = "  {}",
+            ),
+
         widget.WidgetBox(
             close_button_location='left',
-            text_open='',
-            text_closed='',
+            text_open='',
+            text_closed='',
             fontsize=40,
             widgets=[
                 widget.LaunchBar(
@@ -340,7 +350,7 @@ def widgets():
         widget.GroupBox(
             padding_x=3,
             borderwidth = 5,
-            fontsize = 48,
+            fontsize = 42,
             highlight_method='line',
             highlight_color = ['27293566'],
             active = 'c0daeb',
@@ -375,17 +385,17 @@ def widgets():
             border = '478B99',
             unfocused_border='475b73',
             borderwidth=0,
-            margin_y=0,
+            margin_y=2,
             spacing=5,
             rounded=True,
-            txt_floating='🗗 ',
-            txt_maximized='🗖 ',
-            txt_minimized='',
+            txt_floating='FL: ',
+            txt_maximized='MA: ',
+            txt_minimized='MI: ',
             parse_text = my_func,
             ),
 
         mp(
-             font='Strong',
+             font = 'Iosevka Term Slab Light',
              background = '8a9ea8',
              foreground = '000000',
              ),
@@ -471,7 +481,7 @@ def widgets():
 
 primary = widgets()
 if num_monitors > 1:
-    del primary[2]
+    del primary[3]
 secondary = widgets()
 del secondary[-6]
 secondary[-5],secondary[-4] = secondary[-4],secondary[-5]
@@ -551,15 +561,18 @@ def autostart():
 def moveclient(window):
     c = {
             ig[0]:['xterm'],
-            ig[1]:['Navigator'],
+            ig[1]:['Navigator','Chromium','chromium'],
             ig[2]:['pcmanfm','thunar'],
             ig[3]:['org.pwmt.zathura','Zathura','gimp','Thunderbird'],
-            ig[4]:['spotify'],
+            ig[4]:[None,'spotify','Spotify','crx_cinhimbnkkaeohfgghhklpknlkffjgod'], # SPOTIFY = NONE
             ig[5]:['zoom ','Zoom']
         }
-    w_cls_name = window.window.get_wm_class()[0]
+    try:
+        wclass_name = window.window.get_wm_class()[0]
+    except IndexError as e:
+        return logger.warning(f'[ERROR]: {e}')
     for k in c.keys():
-        if w_cls_name in c[k]:
+        if wclass_name in c[k]:
             window.togroup(k,switch_group=True)
 
 ###############################################################################

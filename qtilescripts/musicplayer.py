@@ -33,7 +33,8 @@ class MusicPlayer(base.InLoopPollText):
             for player in range(len_lst_players):
                 service = lst_players[player]
                 music_player = re.findall(
-                        r'\bf[irefox]*\b|\bs[potify]*\b',service)
+                        r'\bc[hromium]*\b|\bf[irefox]*\b|\bs[potify]*\b',service)
+                        #r'\bf[irefox]*\b|\bs[potify]*\b',service)
                 player_meta = dbus.SessionBus().get_object(service,
                                                            '/org/mpris/MediaPlayer2')
                 player_meta = dbus.Interface(player_meta,
@@ -48,6 +49,8 @@ class MusicPlayer(base.InLoopPollText):
                 m_player = player_dict['Player']
                 if m_player == 'Spotify':
                     player_dict['mediaplayer'] = 'spotify'
+                elif m_player == 'chromium':
+                    player_dict['mediaplayer'] = 'chromium'
                 else:
                     player_dict['mediaplayer'] = 'firefox'
                 m_player = ''
@@ -95,19 +98,74 @@ class MusicPlayer(base.InLoopPollText):
         player = self.get_player_metadata()['Control']
         return player.Previous()
 
+    def stop(self):
+        player = self.get_player_metadata()['Control']
+        return player.Stop()
+
     def record(self):
-        if self.get_player_metadata():
-            mediaplayer = self.get_player_metadata()['mediaplayer']
-            if mediaplayer == 'firefox':
-                logger.warning(f"Recording from [{mediaplayer}]")
+
+        if not self.get_player_metadata():
+            return
+        mediaplayer = self.get_player_metadata()['mediaplayer']
+
+        spotify_running = sp.Popen(
+                [f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/.venv/bin/python',
+                 f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/recording_spotify_track.py',
+                 '-o','mpqtile']
+                ,stdout=sp.PIPE,stderr=sp.PIPE)
+        web_spotify = spotify_running.communicate()[0].decode().replace('\n','')
+
+        ytmusic = sp.Popen(
+                 [f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/.venv/bin/python',
+                  f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/yt_music_record.py',
+                 'mpqtile'
+                 ],stdout=sp.PIPE, stderr=sp.DEVNULL)
+        web_any = ytmusic.communicate()[0].decode().replace('\n','')
+
+        if web_spotify.startswith('Web'):
+            if web_spotify.endswith('1'):
+                logger.warning(f"Recording from [Spotify @ {mediaplayer.title()}]")
                 record = sp.Popen(
-                        ['python',
-                         f'/home/{MusicPlayer.user}/.config/qtile/qtilescripts/yt_music_record.py'],
+                        [f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/.venv/bin/python',
+                         f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/recording_spotify_track.py'],
                         stderr=sp.DEVNULL)
-            else:
-                logger.warning(f"Recording from [{mediaplayer}]")
-                record = sp.Popen(
-                        [f'/home/{MusicPlayer.user}/Documents/GITREPOS/Recording_audio_from_spotify/.venv/bin/python',
-                         f'/home/{MusicPlayer.user}/Documents/GITREPOS/Recording_audio_from_spotify/recording_spotify_track.py'],
-                        stderr=sp.DEVNULL)
+                return
+
+            elif web_spotify.endswith('0'):
+                if web_any == 'Playing':
+                    logger.warning(f"Recording from [{mediaplayer.title()}]")
+                    record = sp.Popen(
+                            [f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/.venv/bin/python',
+                             f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/yt_music_record.py'],
+                            stderr=sp.DEVNULL)
+                    return
+
+            elif web_spotify.endswith('2'):
+                if web_any in ('Playing','Paused'):
+                    logger.warning(f"Recording from [{mediaplayer.title()}]")
+                    record = sp.Popen(
+                            [f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/.venv/bin/python',
+                             f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/yt_music_record.py'],
+                            stderr=sp.DEVNULL)
+                    return
+            logger.warning(f"Recording from [Spotify @ {mediaplayer.title()}]")
+            record = sp.Popen(
+                    [f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/.venv/bin/python',
+                     f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/recording_spotify_track.py'],
+                    stderr=sp.DEVNULL)
+            return
+
+        if mediaplayer in ('chromium', 'firefox'):
+            logger.warning(f"Recording from [{mediaplayer.title()}]")
+            record = sp.Popen(
+                    [f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/.venv/bin/python',
+                    f'/home/{MusicPlayer.user}/Documents/GITREPOS/ytmusic/yt_music_record.py'],
+                    stderr=sp.DEVNULL)
+        else:
+            logger.warning(f"Recording from [{mediaplayer.title()}]")
+            record = sp.Popen(
+                    [f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/.venv/bin/python',
+                     f'/home/{MusicPlayer.user}/Documents/GITREPOS/SpotifyAudioRecorded/recording_spotify_track.py'],
+                    stderr=sp.DEVNULL)
+
         return

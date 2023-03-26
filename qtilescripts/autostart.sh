@@ -1,6 +1,5 @@
 #!/usr/bin/env bash
 
-#setxkbmap latam
 xset -dpms s off
 setxkbmap en_US
 numlockx on # Enabale numeric keyboard
